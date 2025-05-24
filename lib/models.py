@@ -1,5 +1,5 @@
 from sqlalchemy import ForeignKey, Column, Integer, String, MetaData
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 convention = {
@@ -18,6 +18,21 @@ class Company(Base):
 
     def __repr__(self):
         return f'<Company {self.name}>'
+    freebies = relationship('Freebie', backref='company')
+    devs = relationship('Dev', secondary='freebies', backref='companies')
+
+    def give_freebie(self, dev, item_name, value):
+        freebie = Freebie(
+            item_name = item_name,
+            value=value,
+            company_id=self.id
+            dev_id=dev.id
+        )
+        return freebie
+    
+    @classmethod
+    def oldest_company(cls):
+        return session.query(cls).order_by(cls.founding_year).first()
 
 class Dev(Base):
     __tablename__ = 'devs'
@@ -27,3 +42,25 @@ class Dev(Base):
 
     def __repr__(self):
         return f'<Dev {self.name}>'
+    
+    def received_one(self, item_name):
+        return any(freebie.item_name == item_name for freebie in self.freebies)
+    
+    def give_away(self, other_dev, freebie):
+        if freebie.dev_id == self.id:
+            freebie.dev_id == other_dev.id
+
+class Freebie(Base):
+    __tablename__='freebies'
+
+    id = Column(Integer, primary_key=True)
+    item_name = Column(String)
+    value = Column(Integer)
+    company_id = Column(Integer, ForeignKey('companies.id'))
+    dev_id = Column(Integer, ForeignKey('devs.id'))
+
+    company = relationship('Company', backref='freebies')
+    dev = relationship('Dev', backref='freebies')
+
+    def printer(self):
+        return f'{self.dev.name} owns a {self.item_name} from {self.company.name}'
