@@ -1,5 +1,5 @@
-from sqlalchemy import ForeignKey, Column, Integer, String, MetaData, Table
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy import ForeignKey, Column, Integer, String, MetaData
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
 convention = {
@@ -9,12 +9,11 @@ metadata = MetaData(naming_convention=convention)
 
 Base = declarative_base(metadata=metadata)
 
-company_dev = Table(
-    'company_dev',
-    Base.metadata,
-    Column('company_id', ForeignKey('companies.id'), primary_key=True),
-    Column('dev_id', ForeignKey('devs.id'), primary_key=True)
-)
+class CompanyDev(Base):
+    __tablename__ = 'company_dev'
+
+    company_id = Column(Integer, ForeignKey('companies.id'), primary_key=True)
+    dev_id = Column(Integer, ForeignKey('devs.id'), primary_key=True)
 
 class Company(Base):
     __tablename__ = 'companies'
