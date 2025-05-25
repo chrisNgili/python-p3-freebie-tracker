@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Column, Integer, String, MetaData
+from sqlalchemy import ForeignKey, Column, Integer, String, MetaData, Table
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -9,6 +9,13 @@ metadata = MetaData(naming_convention=convention)
 
 Base = declarative_base(metadata=metadata)
 
+company_dev = Table(
+    'company_dev',
+    Base.metadata,
+    Column('company_id', ForeignKey('companies.id'), primary_key=True),
+    Column('dev_id', ForeignKey('devs.id'), primary_key=True)
+)
+
 class Company(Base):
     __tablename__ = 'companies'
 
@@ -16,21 +23,21 @@ class Company(Base):
     name = Column(String())
     founding_year = Column(Integer())
 
-    freebies = relationship('Freebie', backref='company')
+    freebies = relationship('Freebie', back_populates='company')
+    devs = relationship('Dev', secondary='company_dev', back_populates='companies')
 
     def __repr__(self):
         return f'<Company {self.name}>'
-    
 
     def give_freebie(self, dev, item_name, value):
-        freebie = Freebie (
-            item_name = item_name,
+        freebie = Freebie(
+            item_name=item_name,
             value=value,
             company_id=self.id,
             dev_id=dev.id
         )
         return freebie
-    
+
     @classmethod
     def oldest_company(cls, session):
         return session.query(cls).order_by(cls.founding_year).first()
@@ -39,22 +46,23 @@ class Dev(Base):
     __tablename__ = 'devs'
 
     id = Column(Integer(), primary_key=True)
-    name= Column(String())
+    name = Column(String())
 
-    freebies = relationship('Freebie', backref='dev')
+    freebies = relationship('Freebie', back_populates='dev')
+    companies = relationship('Company', secondary='company_dev', back_populates='devs')
 
     def __repr__(self):
         return f'<Dev {self.name}>'
-    
+
     def received_one(self, item_name):
         return any(freebie.item_name == item_name for freebie in self.freebies)
-    
+
     def give_away(self, other_dev, freebie):
         if freebie.dev_id == self.id:
-            freebie.dev_id == other_dev.id
+            freebie.dev_id = other_dev.id
 
 class Freebie(Base):
-    __tablename__='freebies'
+    __tablename__ = 'freebies'
 
     id = Column(Integer, primary_key=True)
     item_name = Column(String)
@@ -62,8 +70,8 @@ class Freebie(Base):
     company_id = Column(Integer, ForeignKey('companies.id'))
     dev_id = Column(Integer, ForeignKey('devs.id'))
 
-    # company = relationship('Company', backref='freebies')
-    # dev = relationship('Dev', backref='freebies')
+    company = relationship('Company', back_populates='freebies')
+    dev = relationship('Dev', back_populates='freebies')
 
     def printer(self):
         return f'{self.dev.name} owns a {self.item_name} from {self.company.name}'
