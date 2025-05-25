@@ -27,6 +27,11 @@ if __name__ == '__main__':
 
     session.commit()
 
+
+    # Tests(Uncomment them then run seed.py in the terminal)
+
+
+
     # print(freebie.printer())
 
     # oldest = Company.oldest_company(session)
